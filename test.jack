@@ -1,0 +1,5 @@
+var int num;
+let num = 543;
+
+var String s;
+let s = "Phil";
