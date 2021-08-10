@@ -6,6 +6,10 @@ use token::{match_identifier, Token};
 
 mod lex;
 use lex::Lex;
+
+mod compilation_engine;
+use compilation_engine::CompilationEngine;
+
 fn main() {
     for arg in args().skip(1) {
         let contents = fs::read_to_string(arg).unwrap();
