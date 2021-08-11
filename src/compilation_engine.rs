@@ -28,19 +28,24 @@ impl<'a> CompilationEngine<'a> {
         CompilationEngine { iter }
     }
 
-    pub fn parse(&mut self) -> Result<(), ParseError> {
+    pub fn parse(&mut self) {
         while let Some(token) = self.iter.next() {
-            match token.clone() {
-                Token::Keyword(val) if val == "var" => {
+            match token {
+                Token::Var => {
                     self.compileVarDec();
+                }
+
+                Token::Integer(_) => {
+                    self.compileTerm(token);
+                }
+                Token::String(_) => {
+                    self.compileTerm(token);
                 }
                 _ => {
                     panic!("Token does not exist: {:?} ", token.clone());
                 }
             }
         }
-
-        Ok(())
     }
 
     fn compileClass(&mut self) {}
@@ -59,8 +64,15 @@ impl<'a> CompilationEngine<'a> {
         println!("<type>");
         if let Some(token) = self.iter.next() {
             match token {
-                Token::Keyword(t) if t == "int" || t == "char" || t == "boolean" => {
-                    println!("{:?}", t);
+                Token::Int => {
+                    println!("int");
+                }
+
+                Token::Char => {
+                    println!("char");
+                }
+                Token::Boolean => {
+                    println!("boolean");
                 }
                 _ => panic!("Token does not exist"),
             }
@@ -70,22 +82,22 @@ impl<'a> CompilationEngine<'a> {
         if let Some(token) = self.iter.next() {
             match token {
                 Token::Identifier(i) => {
-                    println!("{:?}", i);
+                    println!("{}", i);
                 }
                 _ => panic!("Token does not exist"),
             }
         }
         println!("</varName>");
-        while let Some(token) = self.iter.next_if(|token| **token != Token::Symbol(';')) {
+        while let Some(token) = self.iter.next_if(|token| **token != Token::SemiColon) {
             match token {
-                Token::Symbol(s) if *s == ',' => {
+                Token::Comma => {
                     println!("<symbol>");
-                    println!("{:?}", s);
+                    println!(",");
                     println!("</symbol>");
                 }
                 Token::Identifier(i) => {
                     println!("<varName>");
-                    println!("{:?}", i);
+                    println!("{}", i);
                     println!("</varName>");
                 }
                 _ => panic!("Token does not exist"),
@@ -109,17 +121,58 @@ impl<'a> CompilationEngine<'a> {
 
     fn compileExpression(&mut self) {}
 
-    fn compileTerm(&mut self) {}
+    fn compileTerm(&mut self, token: &Token) -> String {
+        match token {
+            Token::Integer(i) => {
+                let xml = format!("<term><integerConstant>{}</integerConstant></term>", i);
+                xml
+            }
+            Token::String(s) => {
+                let xml = format!("<term><stringConstant>{}</stringConstant></term>", s);
+                xml
+            }
+
+            Token::True => {
+                let xml = format!("<term><keyword>true</keyword></term>");
+                xml
+            }
+
+            Token::False => {
+                let xml = format!("<term><keyword>false</keyword></term>");
+                xml
+            }
+
+            Token::This => {
+                let xml = format!("<term><keyword>this</keyword></term>");
+                xml
+            }
+
+            _ => panic!("Token does not exist."),
+        }
+    }
 
     fn compileExpressionList(&mut self) {}
+}
+
+fn execute_test(input: &str) {
+    let mut lex = Lex::new(input.into());
+    let tokens = lex.tokenize().unwrap();
+    let mut iter = tokens.iter().peekable();
+    let mut engine = CompilationEngine::new(&mut iter);
+
+    engine.parse();
 }
 
 #[test]
 fn test_compilation_engine() {
     let input = "var int age;";
-    let mut lex = Lex::new(input.into());
-    let tokens = lex.tokenize().unwrap();
-    let mut engine = CompilationEngine::new(&mut tokens.iter().peekable());
 
-    engine.parse();
+    execute_test(input);
+}
+
+#[test]
+fn test_compilation_engine2() {
+    let input = "var int age, num, test;";
+
+    execute_test(input);
 }

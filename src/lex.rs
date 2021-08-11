@@ -27,8 +27,25 @@ impl Lex {
             while let Some((_pos, ch)) = char_indices.next() {
                 let token = match ch {
                     ' ' => continue,
-                    '+' | '-' | '*' | '/' | '&' | '|' | '<' | '>' | '=' | '{' | '}' | '(' | ')'
-                    | '[' | ']' | '.' | ',' | ';' | '~' => Token::Symbol(ch),
+                    '+' => Token::Plus,
+                    '-' => Token::Minus,
+                    '*' => Token::Asterisk,
+                    '/' => Token::Slash,
+                    '&' => Token::And,
+                    '|' => Token::Or,
+                    '>' => Token::GreaterThan,
+                    '<' => Token::LessThan,
+                    '=' => Token::Equal,
+                    '[' => Token::LeftBracket,
+                    ']' => Token::RightBracket,
+                    '{' => Token::LeftBrace,
+                    '}' => Token::RightBrace,
+                    '(' => Token::LeftParen,
+                    ')' => Token::RightParen,
+                    '.' => Token::Dot,
+                    ',' => Token::Comma,
+                    ';' => Token::SemiColon,
+                    '~' => Token::Tilde,
                     ch if ch.is_ascii_alphabetic() || ch == '_' => {
                         let mut iden: String = ch.to_string();
 
@@ -38,7 +55,7 @@ impl Lex {
                             iden.push(ch);
                         }
                         //
-                        match_identifier(&iden).unwrap()
+                        match_identifier(&iden)
                     }
 
                     ch if ch.is_ascii_digit() => {
