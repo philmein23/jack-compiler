@@ -119,32 +119,50 @@ impl<'a> CompilationEngine<'a> {
 
     fn compileReturn(&mut self) {}
 
-    fn compileExpression(&mut self) {}
+    fn compileExpression(&mut self) -> Result<String, ParseError> {
+        todo!()
+    }
 
-    fn compileTerm(&mut self, token: &Token) -> String {
+    fn compileTerm(&mut self, token: &Token) -> Result<String, ParseError> {
         match token {
             Token::Integer(i) => {
                 let xml = format!("<term><integerConstant>{}</integerConstant></term>", i);
-                xml
+                Ok(xml)
             }
             Token::String(s) => {
                 let xml = format!("<term><stringConstant>{}</stringConstant></term>", s);
-                xml
+                Ok(xml)
             }
 
             Token::True => {
                 let xml = format!("<term><keyword>true</keyword></term>");
-                xml
+                Ok(xml)
             }
 
             Token::False => {
                 let xml = format!("<term><keyword>false</keyword></term>");
-                xml
+                Ok(xml)
             }
 
             Token::This => {
                 let xml = format!("<term><keyword>this</keyword></term>");
-                xml
+                Ok(xml)
+            }
+            Token::Identifier(iden) => {
+                // count or count[expression] or num() or num.getValue()
+                match self.iter.next_if(|token| {
+                    **token == Token::LeftBracket
+                        || **token == Token::Dot
+                        || **token == Token::LeftParen
+                }) {
+                    Token::LeftBracket => {}
+                    Token::Dot => {}
+                    Token::LeftParen => {}
+                    None => {
+                        let xml = format!("<term><varName>{}</varName></term>", iden);
+                        Ok(xml)
+                    }
+                }
             }
 
             _ => panic!("Token does not exist."),
