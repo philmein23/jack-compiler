@@ -135,7 +135,7 @@ impl<'a> CompilationEngine<'a> {
         let expression_result = self.compileExpression()?;
 
         let xml = format!(
-            "<statement><keyword>let</keyword>{}{}{}</statement>",
+            "<letStatement><keyword>let</keyword>{}{}{}<symbol>;</symbol></letStatement>",
             varName, symbol, expression_result
         );
 
