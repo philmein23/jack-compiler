@@ -17,6 +17,7 @@ enum Type {
 
 enum ParseError {
     GeneralParsingError,
+    CannotParseToken,
 }
 
 pub struct CompilationEngine<'a> {
@@ -28,24 +29,19 @@ impl<'a> CompilationEngine<'a> {
         CompilationEngine { iter }
     }
 
-    pub fn parse(&mut self) {
+    pub fn parse(&mut self) -> Result<String, ParseError> {
+        let mut result;
         while let Some(token) = self.iter.next() {
-            match token {
-                Token::Var => {
-                    self.compileVarDec();
-                }
-
-                Token::Integer(_) => {
-                    self.compileTerm(token);
-                }
-                Token::String(_) => {
-                    self.compileTerm(token);
-                }
-                _ => {
-                    panic!("Token does not exist: {:?} ", token.clone());
-                }
-            }
+            result = match token {
+                Token::Var => self.compileVarDec(),
+                Token::Integer(_) => self.compileTerm(token),
+                Token::String(_) => self.compileTerm(token),
+                Token::Let => self.compileLet(),
+                _ => Err(ParseError::CannotParseToken),
+            };
         }
+
+        result
     }
 
     fn compileClass(&mut self) {}
@@ -56,60 +52,95 @@ impl<'a> CompilationEngine<'a> {
 
     fn compileParameterList(&mut self) {}
 
-    fn compileVarDec(&mut self) {
-        println!("<varDec>");
-        println!("<keyword>");
-        println!("var");
-        println!("</keyword>");
-        println!("<type>");
-        if let Some(token) = self.iter.next() {
-            match token {
-                Token::Int => {
-                    println!("int");
-                }
+    fn compileVarDec(&mut self) -> Result<String, ParseError> {
+        // var int num, num2, num3;
 
-                Token::Char => {
-                    println!("char");
-                }
-                Token::Boolean => {
-                    println!("boolean");
-                }
-                _ => panic!("Token does not exist"),
+        let typeVal = match self.iter.next() {
+            Some(Token::Int) => {
+                format!("int")
             }
-        }
-        println!("</type>");
-        println!("<varName>");
-        if let Some(token) = self.iter.next() {
-            match token {
-                Token::Identifier(i) => {
-                    println!("{}", i);
-                }
-                _ => panic!("Token does not exist"),
+
+            Some(Token::Char) => {
+                format!("char")
             }
-        }
-        println!("</varName>");
+            Some(Token::Boolean) => {
+                format!("boolean")
+            }
+            None | _ => "".to_string(),
+        };
+
+        let varName = match self.iter.next() {
+            Some(Token::Identifier(i)) => {
+                format!("{}", i)
+            }
+            _ | None => "".to_string(),
+        };
+
+        let mut concatenated = "".to_string();
         while let Some(token) = self.iter.next_if(|token| **token != Token::SemiColon) {
             match token {
                 Token::Comma => {
-                    println!("<symbol>");
-                    println!(",");
-                    println!("</symbol>");
+                    let symbol = format!("<symbol>,</symbol>");
+                    concatenated.push_str(symbol.as_str());
                 }
                 Token::Identifier(i) => {
-                    println!("<varName>");
-                    println!("{}", i);
-                    println!("</varName>");
+                    let varName = format!("<varName>{}</varName>", i);
+                    concatenated.push_str(varName.as_str());
                 }
                 _ => panic!("Token does not exist"),
             }
         }
         let _token = self.iter.next();
-        println!("</varDec>")
+
+        let xml = format!(
+            "<varDec>
+            <keyword>
+                var
+            </keyword>
+            <type>
+            {}
+            </type>
+        </varDec>
+        <varName>
+        {}
+        </varName>
+        {}
+        ",
+            typeVal, varName, concatenated
+        );
+
+        Ok(xml)
     }
 
     fn compileStatements(&mut self) {}
 
-    fn compileLet(&mut self) {}
+    fn compileLet(&mut self) -> Result<String, ParseError> {
+        // let num = 5;
+        // let age = 1 + 2;
+
+        let varName = match self.iter.next() {
+            Some(Token::Identifier(iden)) => {
+                format!("<varName>{}</varName>", iden)
+            }
+            None | _ => "".to_string(),
+        };
+
+        let symbol = match self.iter.next() {
+            Some(Token::Equal) => {
+                format!("<symbol>==</symbol>")
+            }
+            None | _ => "".to_string(),
+        };
+
+        let expression_result = self.compileExpression()?;
+
+        let xml = format!(
+            "<statement><keyword>let</keyword>{}{}{}</statement>",
+            varName, symbol, expression_result
+        );
+
+        Ok(xml)
+    }
 
     fn compileIf(&mut self) {}
 
@@ -120,7 +151,9 @@ impl<'a> CompilationEngine<'a> {
     fn compileReturn(&mut self) {}
 
     fn compileExpression(&mut self) -> Result<String, ParseError> {
-        todo!()
+        let token = self.iter.next().unwrap();
+
+        self.compileTerm(token)
     }
 
     fn compileTerm(&mut self, token: &Token) -> Result<String, ParseError> {
@@ -149,7 +182,7 @@ impl<'a> CompilationEngine<'a> {
                 Ok(xml)
             }
             Token::Identifier(iden) => {
-                // count or count[expression] or num() or num.getValue()
+                // count or count[expression] or num() or num.getValue();
                 match self.iter.next_if(|token| {
                     **token == Token::LeftBracket
                         || **token == Token::Dot
